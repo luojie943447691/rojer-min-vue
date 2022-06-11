@@ -1,8 +1,10 @@
 
 class ReactiveEffect{
     private _fn: any
-    constructor(fn){
+    public scheduler: any;
+    constructor(fn,scheduler){
         this._fn = fn
+        this.scheduler = scheduler
     }
 
     run(){
@@ -37,7 +39,13 @@ export function trigger(target,key){
     const dep = depsMap.get(key)
 
     dep.forEach(effectFn => {
-        effectFn.run()
+        // 如果有 scheduler ，就不会执行 run 自身
+        if(effectFn.scheduler){
+            effectFn.scheduler()
+        }
+        else{
+            effectFn.run()
+        }
         // console.log("effectFn",effectFn);
     })
 }
@@ -46,10 +54,11 @@ export function trigger(target,key){
 let activeEffect;
 
 // 收集依赖的函数
-export function effect(fn){
+export function effect(fn,options:any = {}){
+    const scheduler = options.scheduler
     // 当我们调用 effect 的时候 ，执行里面的函数
-    let _effect =new ReactiveEffect(fn)
-
+    let _effect = new ReactiveEffect(fn,scheduler)
+    
     // 执行函数
     _effect.run()
 
