@@ -1,4 +1,5 @@
 import { track, trigger } from "./effect"
+import { ReactiveFlags } from "./reactive"
 
 const get = createGetter()
 const set = createSetter()
@@ -6,7 +7,14 @@ const readonlyGet = createGetter(true)
 
 function createGetter(isReadonly = false) {
     return function get(target, key) {
+        if (key === ReactiveFlags.IS_REACTIVE) {
+            return !isReadonly;
+        } else if (key === ReactiveFlags.IS_READONLY) {
+            return isReadonly;
+        }
+
         const res = Reflect.get(target, key)
+        console.log("key", key);
         if (!isReadonly) {
             // 收集依赖
             track(target, key)
@@ -15,8 +23,8 @@ function createGetter(isReadonly = false) {
     }
 }
 
-function createSetter(){
-    return function set(target, key, value){
+function createSetter() {
+    return function set(target, key, value) {
         const res = Reflect.set(target, key, value)
         // 触发依赖
         trigger(target, key)
@@ -25,12 +33,12 @@ function createSetter(){
 }
 
 export const mutableHandlers = {
-    get:get,
-    set:createSetter()
+    get,
+    set
 }
 
 export const readonlyHandlers = {
-    get:readonlyGet,
+    get: readonlyGet,
     set(target, key, value) {
         console.warn(`${key.toString()}是只读的`);
         return true
