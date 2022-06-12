@@ -7,7 +7,7 @@ let shouldTrack = false
 // 当前活跃的 effect
 let activeEffect;
 
-class ReactiveEffect {
+export class ReactiveEffect {
     private _fn: any
     public scheduler: any;
     public deps: any = [];
