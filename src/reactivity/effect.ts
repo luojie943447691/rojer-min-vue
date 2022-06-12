@@ -73,19 +73,20 @@ export function track(target, key) {
             dep = new Set();
             depsMap.set(key, dep)
         }
-
-        dep.add(activeEffect)
-
-        if (activeEffect.deps.indexOf(dep) === -1) {
-            // 为了能在 stop 中找到 dep
-            activeEffect.deps.push(dep)
-        }
+        trackEffects(dep)
     }
+}
 
+export function trackEffects(dep) {
+    // 如果之前添加过 就不用添加了
+    if (dep.has(activeEffect)) return;
+    dep.add(activeEffect)
+    // 为了能在 stop 中找到 dep
+    activeEffect.deps.push(dep)
 }
 
 // 封装是否收集
-function isTracking() {
+export function isTracking() {
     return !(!shouldTrack || !activeEffect)
 }
 
@@ -94,7 +95,10 @@ export function trigger(target, key) {
     const depsMap = targetMap.get(target);
     if (!depsMap) return;
     const dep = depsMap.get(key)
+    triggerEffects(dep)
+}
 
+export function triggerEffects(dep) {
     dep.forEach(effectFn => {
         // 如果有 scheduler ，就不会执行 run 自身
         if (effectFn.scheduler) {
