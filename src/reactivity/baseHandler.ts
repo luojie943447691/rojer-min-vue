@@ -1,12 +1,15 @@
-import { isObject } from "../shared/utils"
+import { extend, isObject } from "../shared/utils"
 import { track, trigger } from "./effect"
 import { reactive, ReactiveFlags, readonly } from "./reactive"
 
 const get = createGetter()
 const set = createSetter()
 const readonlyGet = createGetter(true)
+const shallowReadonlyGet = createGetter(true, true)
 
-function createGetter(isReadonly = false) {
+// 是否只读
+// 是否 只包含第一层
+function createGetter(isReadonly = false, isShallow = false) {
     return function get(target, key) {
         if (key === ReactiveFlags.IS_REACTIVE) {
             return !isReadonly;
@@ -14,6 +17,11 @@ function createGetter(isReadonly = false) {
             return isReadonly;
         }
         let res = Reflect.get(target, key)
+
+        // 如果是 shallow 
+        if (isShallow) {
+            return res
+        }
         // console.log("key", key);
         if (!isReadonly) {
             // 看得到的结果是否是 对象 ，如果是对象，则继续用 reactive 封装 
@@ -21,10 +29,9 @@ function createGetter(isReadonly = false) {
             // 收集依赖
             track(target, key)
         }
-        else{
+        else {
             res = isObject(res) ? readonly(res) : res
         }
-
         // 
 
         return res
@@ -33,10 +40,16 @@ function createGetter(isReadonly = false) {
 
 function createSetter() {
     return function set(target, key, value) {
-        const res = Reflect.set(target, key, value)
-        // 触发依赖
-        trigger(target, key)
-        return res
+        const oldValue = Reflect.get(target, key)
+        // 如果两个值相等 则不需要收集依赖
+        if (oldValue !== value) {
+            const res = Reflect.set(target, key, value)
+            // 触发依赖
+            trigger(target, key)
+            return res
+        }
+
+        return true
     }
 }
 
@@ -52,3 +65,7 @@ export const readonlyHandlers = {
         return true
     }
 }
+
+export const shallowReadonlyHandlers = extend({}, readonlyHandlers, {
+    get: shallowReadonlyGet,
+});
