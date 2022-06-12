@@ -1,22 +1,34 @@
 import { extend } from "../shared/utils";
 
+
+// 是否应当继续收集
+// 如果被 stop 了的话 ，不应当再收集依赖了
+let shouldTrack = false
+// 当前活跃的 effect
+let activeEffect;
+
 class ReactiveEffect {
     private _fn: any
     public scheduler: any;
     public deps: any = [];
     // 针对 stop 可能会被多次清空的问题
     private active = true
-    public onStop: any = () => {};
+    public onStop: any = () => { };
     constructor(fn, scheduler) {
         this._fn = fn
         this.scheduler = scheduler
     }
 
     run() {
-        activeEffect = this;
+        // 如果是已经被 stop 了的，后面即使获取到 effect 返回的 runner ，
+        //     并且执行 runner 也不能收集依赖
+        if (!this.active) {
+            return this._fn()
+        }
 
         // 可以收集依赖 收集完成之后 则不能再次收集依赖了
         shouldTrack = true
+        activeEffect = this;
         const res = this._fn()
         shouldTrack = false
 
@@ -31,7 +43,7 @@ class ReactiveEffect {
             this.active = false
             this.deps.length = 0
             // 执行 onStop
-            if(this.onStop){
+            if (this.onStop) {
                 this.onStop()
             }
         }
@@ -46,33 +58,35 @@ function cleanupEffect(effect) {
     });
 }
 
-// 是否应当继续收集
-// 如果被 stop 了的话 ，不应当再收集依赖了
-let shouldTrack = false
-
 const targetMap = new Map();
 // 收集依赖
 export function track(target, key) {
-    if (!shouldTrack && !activeEffect) return;
-    let depsMap = targetMap.get(target)
-    if (!depsMap) {
-        depsMap = new Map();
-        targetMap.set(target, depsMap)
+    if (isTracking()) {
+        let depsMap = targetMap.get(target)
+        if (!depsMap) {
+            depsMap = new Map();
+            targetMap.set(target, depsMap)
+        }
+
+        let dep = depsMap.get(key)
+        if (!dep) {
+            dep = new Set();
+            depsMap.set(key, dep)
+        }
+
+        dep.add(activeEffect)
+
+        if (activeEffect.deps.indexOf(dep) === -1) {
+            // 为了能在 stop 中找到 dep
+            activeEffect.deps.push(dep)
+        }
     }
 
-    let dep = depsMap.get(key)
-    if (!dep) {
-        dep = new Set();
-        depsMap.set(key, dep)
-    }
+}
 
-    dep.add(activeEffect)
-
-    if (activeEffect.deps.indexOf(dep) === -1) {
-        // 为了能在 stop 中找到 dep
-        activeEffect.deps.push(dep)
-    }
-
+// 封装是否收集
+function isTracking() {
+    return !(!shouldTrack || !activeEffect)
 }
 
 // 触发依赖
@@ -93,8 +107,6 @@ export function trigger(target, key) {
     })
 }
 
-// 当前活跃的 effect
-let activeEffect;
 
 // 收集依赖的函数
 export function effect(fn, options: any = {}) {
@@ -105,7 +117,7 @@ export function effect(fn, options: any = {}) {
     // 执行函数
     _effect.run()
 
-    extend(_effect,options)
+    extend(_effect, options)
     // _effect.onStop = options.onStop
 
     const runner: any = _effect.run.bind(_effect)
