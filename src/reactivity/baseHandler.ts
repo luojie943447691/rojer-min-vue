@@ -1,5 +1,6 @@
+import { isObject } from "../shared/utils"
 import { track, trigger } from "./effect"
-import { ReactiveFlags } from "./reactive"
+import { reactive, ReactiveFlags, readonly } from "./reactive"
 
 const get = createGetter()
 const set = createSetter()
@@ -12,13 +13,20 @@ function createGetter(isReadonly = false) {
         } else if (key === ReactiveFlags.IS_READONLY) {
             return isReadonly;
         }
-
-        const res = Reflect.get(target, key)
-        console.log("key", key);
+        let res = Reflect.get(target, key)
+        // console.log("key", key);
         if (!isReadonly) {
+            // 看得到的结果是否是 对象 ，如果是对象，则继续用 reactive 封装 
+            res = isObject(res) ? reactive(res) : res
             // 收集依赖
             track(target, key)
         }
+        else{
+            res = isObject(res) ? readonly(res) : res
+        }
+
+        // 
+
         return res
     }
 }
