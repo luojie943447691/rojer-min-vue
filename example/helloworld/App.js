@@ -9,7 +9,11 @@ export const App = {
         id:"root"
       },
       [
-        h("div", {}, "hi," + this.msg),
+        h("div", {
+          onClick(){
+            console.log("click");
+          }
+        }, "hi," + this.msg),
         h("div", {
           count: 1,
         },
