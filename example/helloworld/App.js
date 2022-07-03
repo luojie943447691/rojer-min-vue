@@ -1,4 +1,5 @@
 import {h} from '../../lib/guide-mini-vue.esm.js'
+import {Foo} from './Foo.js'
 
 export const App = {
     render() {
@@ -9,16 +10,14 @@ export const App = {
         id:"root"
       },
       [
-        h("div", {
-          onClick(){
-            console.log("click");
-          }
-        }, "hi," + this.msg),
-        h("div", {
+        // h("div", {
+        //   onClick(){
+        //     console.log("click");
+        //   }
+        // }, "hi," + this.msg),
+        h(Foo, {
           count: 1,
-        },
-        "123"
-        ),
+        }),
       ]
       // "hi, " + this.msg
       // "hi, mini-vue"

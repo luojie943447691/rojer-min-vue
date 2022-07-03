@@ -76,8 +76,7 @@ function setupRenderEffect(instance: any, vnode, container) {
     // render 由于需要 this 用来访问 setup 的数据
     // 结构出 proxy 数据 
     const { proxy } = instance
-    const subTree = instance.render.apply(proxy);
-
+    const subTree = instance.render.call(proxy);
     patch(subTree, container);
     // 尤其要注意这里 helloworld 文件夹，是否能访问到 $el 的关键所在
     // 当 element 节点处理完成之后，当前虚拟节点的 el 就可以赋值了
